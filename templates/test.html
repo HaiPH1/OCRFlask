@@ -1,0 +1,280 @@
+<!DOCTYPE html
+	PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+	<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+	<title>Demo OCR Select</title>
+	<link href="{{ url_for('static', filename='example.css') }}" media="screen" rel="stylesheet" type="text/css" />
+	<link href="{{ url_for('static', filename='resources/jquery.selectareas.css') }}" media="screen" rel="stylesheet"
+		type="text/css" />
+	<!--[if lte IE 8]><link href="../resources/jquery.selectareas.ie8.css" media="screen" rel="stylesheet" type="text/css" /> <![endif]-->
+	<script src="{{ url_for('static', filename='jquery-1.11.3.min.js') }}" type="text/javascript"></script>
+	<script src="{{ url_for('static', filename='jquery.selectareas.js') }}" type="text/javascript"></script>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+	<style> 
+			input[type=submit] {
+			  background-color: #4CAF50;
+			  border: 5px;
+			  color: white;
+			  padding: 16px 32px;
+			  text-decoration: none;
+			  margin: 4px 2px;
+			  cursor: pointer;
+            }
+            .divText {
+                border: 1px solid #ccc !important;
+                margin: 5px 0px;
+            }
+	</style>
+	<script type="text/javascript">
+		$(document).ready(function () {
+			// $('.submitButton').css("display", "none");
+			$('.output').css("display", "none");
+			$('.actionOn').attr("disabled", "disabled");
+			$('.actionOff').removeAttr("disabled");
+
+			$('#btnView').click(function () {
+				var areas = $('img#example').selectAreas('areas');
+				var base64 = $('img#example').attr('src');
+				base64 = resizeImage(base64);
+				console.log(base64);
+				displayAreas(areas, base64);
+			});
+			$('#btnViewRel').click(function () {
+				var areas = $('img#example').selectAreas('relativeAreas');
+				displayAreas(areas);
+			});
+			$('#btnReset').click(function () {
+				output("reset")
+				$('img#example').selectAreas('reset');
+			});
+			$('#btnDestroy').click(function () {
+				$('img#example').selectAreas('destroy');
+				$('img#example').width(1000);
+				output("destroyed")
+				$('.actionOn').attr("disabled", "disabled");
+				$('.actionOff').removeAttr("disabled");
+				$("#imgInp").removeAttr("disabled");
+			});
+			$('#btnCreate').click(function () {
+				$('.output').css("display", "");
+                $('.submitButton').css("display", "");
+				$('img#example').selectAreas({
+					minSize: [10, 10],
+					onChanged: debugQtyAreas,
+					width: 1000,
+				});
+				output("created")
+				$('.actionOff').attr("disabled", "disabled");
+				$('.actionOn').removeAttr("disabled");
+				$("#imgInp").attr("disabled", "disabled");
+			});
+			$('#btnNew').click(function () {
+				var areaOptions = {
+					x: Math.floor((Math.random() * 200)),
+					y: Math.floor((Math.random() * 200)),
+					width: Math.floor((Math.random() * 100)) + 50,
+					height: Math.floor((Math.random() * 100)) + 20,
+				};
+				output("Add a new area: " + areaToString(areaOptions))
+				$('img#example').selectAreas('add', areaOptions);
+			});
+			$('#btnNews').click(function () {
+				var areaOption1 = {
+					x: Math.floor((Math.random() * 200)),
+					y: Math.floor((Math.random() * 200)),
+					width: Math.floor((Math.random() * 100)) + 50,
+					height: Math.floor((Math.random() * 100)) + 20,
+				}, areaOption2 = {
+					x: areaOption1.x + areaOption1.width + 10,
+					y: areaOption1.y + areaOption1.height - 20,
+					width: 50,
+					height: 20,
+				};
+				output("Add a new area: " + areaToString(areaOption1) + " and " + areaToString(areaOption2))
+				$('img#example').selectAreas('add', [areaOption1, areaOption2]);
+			});
+			$("#imgInp").change(function () {
+				readURL(this);
+				console.log(this);
+			});
+			$("#myAwesomeForm").submit(function (e) {
+				e.preventDefault();
+				var base64 = $('img#example').attr('src');
+				base64 = resizeImage(base64);
+				var areas = $('img#example').selectAreas('areas');
+				appendFileAndSubmit(areas, base64);
+				// console.log(base64, areas);
+			});
+		});
+		var selectionExists;
+		function areaToString(area) {
+			return (typeof area.id === "undefined" ? "" : (area.id + ": ")) + area.x + ':' + area.y + ' ' + area.width + 'x' + area.height + '<br />'
+		}
+		function output(text) {
+			$('#output').html(text);
+		}
+		// Log the quantity of selections
+		function debugQtyAreas(event, id, areas) {
+			console.log(areas.length + " areas", arguments);
+		};
+		// Display areas coordinates in a div
+		function displayAreas(areas, base64) {
+			// console.log(areas, base64);
+
+			var text = "";
+			$.each(areas, function (id, area) {
+				text += areaToString(area);
+			});
+			output(text);
+		};
+
+		function get_text_from_dict(dict_text) {
+
+			var texts = dict_text["text"];
+			var text = "";
+			for (var t in texts) {
+				text += texts[t] + "\n";
+			};
+			return text;
+		};
+
+		function appendFileAndSubmit(areas, base64) {
+			var form = document.getElementById("myAwesomeForm");
+			var ImageURL = base64;
+			// Split the base64 string in data and contentType
+			var block = ImageURL.split(";");
+			// Get the content type of the image
+			var contentType = block[0].split(":")[1];// In this case "image/gif"
+			// get the real base64 content of the file
+			var realData = block[1].split(",")[1];// In this case "R0lGODlhPQBEAPeoAJosM...."
+			// Convert it to a blob to upload
+
+			var nameValue = document.getElementById("intNumber").value;
+
+			var blob = b64toBlob(realData, contentType);
+			var formDataToUpload = new FormData(form);
+			formDataToUpload.append("image", blob);
+			formDataToUpload.append("form_id", nameValue)
+			// formDataToUpload.append("location", JSON.stringify(areas));
+			// Submit Form and upload file
+			$.ajax({
+				url: "http://localhost:5000/api/ocr",
+				data: formDataToUpload,// the formData function is available in almost all new browsers.
+				type: "POST",
+				contentType: false,
+				processData: false,
+				cache: false,
+				dataType: "json", // Change this according to your response from the server.
+				error: function (err) {
+					console.error(err);
+				},
+				success: function (response) {
+					// $('<textarea rows="4" cols="50">' + get_text_from_dict(response) + '</textarea>').appendTo('#data');
+					$("textarea#results").val(get_text_from_dict(response));
+				},
+				complete: function () {
+					console.log("Request finished.");
+				}
+			});
+		}
+		function resizeImage(base64Str) {
+			var img = new Image();
+			img.src = base64Str;
+			var canvas = document.createElement('canvas');
+			var MAX_WIDTH = 1000;
+			// var MAX_HEIGHT = 100000;
+			var width = img.width;
+			var height = img.height;
+			height *= MAX_WIDTH / width;
+			width = MAX_WIDTH;
+			canvas.width = width;
+			canvas.height = height;
+			var ctx = canvas.getContext('2d');
+			ctx.drawImage(img, 0, 0, width, height);
+			return canvas.toDataURL();
+		}
+		function readURL(input) {
+			if (input.files && input.files[0]) {
+				var reader = new FileReader();
+
+				reader.onload = function (e) {
+					$('.image-decorator').css("display", "");
+					$('#example').attr('src', e.target.result);
+				}
+
+				reader.readAsDataURL(input.files[0]);
+			}
+		}
+
+		function b64toBlob(b64Data, contentType = '', sliceSize = 512) {
+			const byteCharacters = atob(b64Data);
+			const byteArrays = [];
+			for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+				const slice = byteCharacters.slice(offset, offset + sliceSize);
+				const byteNumbers = new Array(slice.length);
+				for (let i = 0; i < slice.length; i++) {
+					byteNumbers[i] = slice.charCodeAt(i);
+				}
+				const byteArray = new Uint8Array(byteNumbers);
+				byteArrays.push(byteArray);
+			}
+
+			const blob = new Blob(byteArrays, { type: contentType });
+			return blob;
+		}
+	</script>
+</head>
+
+<body>
+	<nav class="navbar navbar-inverse">
+		<div class="container-fluid">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="/">Demo OCR Select</a>
+			</div>
+			<ul class="nav navbar-nav">
+				<li><a href="/define_form">Define form</a></li>
+				<li class="active"><a href="/test">Test</a></li>
+			</ul>
+		</div>
+	</nav>
+
+	<div class="row">
+		<div>
+			<div class="col-md-6 col-md-offset-1">
+				<div class="image-decorator">
+					<img alt="Image principale" id="example" src="static/6.jpg" style="width: 1000px;" />
+				</div>
+			</div>
+			<div class="col-md-5">
+				<table>
+					<tr>
+						<form id="myAwesomeForm" method="post" action="">
+							<td class="actions">
+								<input type='file' id="imgInp" /> <!-- Filename -->
+								<label>Form ID </label>
+								<input id="intNumber" type="number" min="1" max="40" value="1"/>
+								<!-- <input type="button" id="btnView" value="Display areas" class="actionOn btn btn-primary" style="margin: 5px 0px;" /> -->
+								<!-- <input type="button" id="btnReset" value="Reset" class="actionOn btn btn-primary" style="margin: 5px 0px;" /> -->
+								<!-- <input type="button" id="btnDestroy" value="Destroy" class="actionOn btn btn-primary" style="margin: 5px 0px;" /> -->
+								<!-- <input type="button" id="btnCreate" value="Create" class="actionOff btn btn-primary" style="margin: 5px 0px;" /> -->
+								<input type="submit" id="submitButton" class="submitButton btn btn-success" style="margin: 5px 0px;" />
+                            </td>
+                            <td>
+								<!-- <div id="data"> </div> -->
+								<textarea rows="10" cols="50" id="results"></textarea>
+                            </td>
+							<td>
+								<div id="output" class='output'> </div>
+							</td>
+                        </form>
+					</tr>
+                </table>
+			</div>
+		</div>
+
+	</div>
+</body>
+
+</html>
