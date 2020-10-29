@@ -8,39 +8,43 @@ from utils.functions import call_tf_serving
 
 app = Flask(__name__)
 
-@app.route('/')
-@app.route('/define_form')
+
+@app.route("/")
+@app.route("/define_form")
 def define_form():
-    return render_template('define_form.html')
+    return render_template("define_form.html")
 
 
-@app.route('/test')
+@app.route("/test")
 def test():
-    return render_template('test.html')
+    return render_template("test.html")
 
-@app.route('/api/submit', methods=['POST'])
+
+@app.route("/api/submit", methods=["POST"])
 def submit_form():
-    location = request.form.get('location')
-    form_id = request.form.get('form_id')
+    location = request.form.get("location")
+    form_id = request.form.get("form_id")
     save_location(location, form_id)
     print("Submited", form_id, location)
-    return '0'
+    return "0"
 
-@app.route('/api/ocr', methods=['POST'])
+
+@app.route("/api/ocr", methods=["POST"])
 def get_text_ocr():
-    image_base64 = request.files.get('image')
-    form_id  = request.form.get('form_id')
+    image_base64 = request.files.get("image")
+    form_id = request.form.get("form_id")
     location = load_location(form_id)
     if location is None:
         # return ket qua k co gi
-        print ("error")
+        print("error")
         # return '0'
     else:
         image = decode_image(image_base64)
         cropped_list = crop_image(image, location)
         text = call_tf_serving(cropped_list)
         print(text)
-        return json.dumps({'text':text})
+        return json.dumps({"text": text})
 
-if __name__ == '__main__':
-   app.run(debug=True)
+
+if __name__ == "__main__":
+    app.run(debug=True)
